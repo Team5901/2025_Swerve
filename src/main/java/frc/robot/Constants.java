@@ -65,4 +65,10 @@ public class Constants {
         public static final TrapezoidProfile.Constraints MOVEMENT_CONSTRAINTS = new TrapezoidProfile.Constraints(
                 MAX_VELOCITY_METERS_PER_SECOND, MAX_ACCELERATION_METERS_PER_SECOND_SQUARED);
     }
+
+    public static final class Intake {
+        public static final int MOTOR_ID = 11;
+        public static final boolean MOTOR_INVERTED = true;
+        public static final int CURRENT_LIMIT = 60;
+    }
 }

@@ -9,6 +9,8 @@ import static edu.wpi.first.units.Units.*;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Pose3d;
@@ -23,13 +25,16 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Arm;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Intake;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -52,12 +57,19 @@ public class RobotContainer {
   private final int rotationAxis = Joystick.AxisType.kZ.value;
 
   private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
+    private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
+    private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
 
     private final JoystickButton Level1A =
       new JoystickButton(controller_2, XboxController.Button.kA.value);
 
     private final JoystickButton Level2X =
       new JoystickButton(controller_2, XboxController.Button.kX.value);
+
+    private final JoystickButton IntakeRollersIn =
+      new JoystickButton(controller_2, XboxController.Button.kLeftBumper.value);
+    private final JoystickButton IntakeRollersOut =
+      new JoystickButton(controller_2, XboxController.Button.kRightBumper.value);
 
     PositionTracker positionTracker = new PositionTracker();
     private Mechanism2d mechanisms = new Mechanism2d(5, 3);
@@ -77,7 +89,10 @@ public class RobotContainer {
     };
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
+    TalonFX _talonArm = new TalonFX(12);
+    TalonFX _talonSpool = new TalonFX(10);
+    //public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
+    Intake intake = new Intake();
 
     public RobotContainer() {
         configureBindings();
@@ -95,8 +110,17 @@ public class RobotContainer {
             )
         );
 
-        Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
-        Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
+        moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(new DutyCycleOut(0.5 * controller_2.getLeftY()))));
+        moveArm.onFalse(new InstantCommand(() -> _talonArm.setControl(new DutyCycleOut(-0.01))));
+        moveElevator.whileTrue(new InstantCommand(() -> _talonSpool.setControl(new DutyCycleOut(0.5 * controller_2.getRightY()))));
+        moveElevator.onFalse(new InstantCommand(() -> _talonSpool.setControl(new DutyCycleOut(-0.01))));
+        //Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
+        //Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
+
+        IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
+        IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
+        IntakeRollersOut.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(3), intake));
+        //IntakeRollersOut.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
 
 
         // Run SysId routines when holding back/start and X/Y.
