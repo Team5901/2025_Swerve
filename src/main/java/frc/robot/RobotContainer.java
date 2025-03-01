@@ -6,12 +6,21 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.function.Supplier;
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
+import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -19,6 +28,7 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.Arm;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class RobotContainer {
@@ -43,7 +53,31 @@ public class RobotContainer {
 
   private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
 
+    private final JoystickButton Level1A =
+      new JoystickButton(controller_2, XboxController.Button.kA.value);
+
+    private final JoystickButton Level2X =
+      new JoystickButton(controller_2, XboxController.Button.kX.value);
+
+    PositionTracker positionTracker = new PositionTracker();
+    private Mechanism2d mechanisms = new Mechanism2d(5, 3);
+    private MechanismRoot2d root = mechanisms.getRoot("root", 2.5, 0.25);
+    private MechanismLigament2d armLigament = root
+            .append(new MechanismLigament2d("armLigament", Units.inchesToMeters(10), 270,
+                    5,
+                    new Color8Bit(Color.kRed)));
+    private final Supplier<Pose3d> carriagePoseSupplier = new Supplier<Pose3d>() {
+
+        @Override
+        public Pose3d get() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'get'");
+        }
+        
+    };
+
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+    public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
 
     public RobotContainer() {
         configureBindings();
@@ -61,10 +95,9 @@ public class RobotContainer {
             )
         );
 
-        //joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-        //joystick.b().whileTrue(drivetrain.applyRequest(() ->
-        //    point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-        //));
+        Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
+        Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
+
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
