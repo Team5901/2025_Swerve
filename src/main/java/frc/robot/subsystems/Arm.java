@@ -2,18 +2,12 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
-//import com.revrobotics.spark.SparkBase.PersistMode;
-//import com.revrobotics.spark.SparkBase.ResetMode;
-//import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.ctre.phoenix6.configs.FeedbackConfigs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
-import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-//import com.revrobotics.spark.SparkMax;
-//import com.revrobotics.spark.config.SparkMaxConfig;
-//import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.techhounds.houndutil.houndlib.Utils;
 import com.techhounds.houndutil.houndlib.subsystems.BaseSingleJointedArm;
 import com.techhounds.houndutil.houndlog.annotations.Log;
@@ -52,11 +46,9 @@ import static frc.robot.Constants.Arm.*;
 @LoggedObject
 public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPosition> {
     @Log
-    private final TalonFX motor;
+    private final SparkMax motor;
 
-    private TalonFXConfiguration motorConfig;
-
-    private FeedbackConfigs motorFeedback;
+    private SparkMaxConfig motorConfig;
 
     @Log(groups = "control")
     private final ProfiledPIDController pidController = new ProfiledPIDController(kP, kI, kD, MOVEMENT_CONSTRAINTS);
@@ -102,17 +94,17 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
 
     public Arm(PositionTracker positionTracker, MechanismLigament2d ligament, Supplier<Pose3d> carriagePoseSupplier) {
 
-        motorConfig = new TalonFXConfiguration();
-        motorConfig.MotorOutput.withInverted(InvertedValue.valueOf(MOTOR_INVERTED));
-        motorConfig.MotorOutput.withNeutralMode(NeutralModeValue.Brake);
-        motorConfig.CurrentLimits.withSupplyCurrentLimit(CURRENT_LIMIT);
-        motorFeedback = new FeedbackConfigs();
-        motorFeedback.withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor);
-        motorFeedback.withFeedbackRotorOffset(ENCODER_ROTATIONS_TO_METERS);
-        motorConfig.withFeedback(motorFeedback);
+        motorConfig = new SparkMaxConfig();
+        motorConfig
+                .inverted(MOTOR_INVERTED)
+                .idleMode(IdleMode.kBrake)
+                .smartCurrentLimit(CURRENT_LIMIT);
+        motorConfig.encoder
+                .positionConversionFactor(ENCODER_ROTATIONS_TO_METERS)
+                .velocityConversionFactor(ENCODER_ROTATIONS_TO_METERS / 60.0);
 
-        motor = new TalonFX(MOTOR_ID);
-        //motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        motor = new SparkMax(MOTOR_ID, MotorType.kBrushless);
+        motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         sysIdRoutine = new SysIdRoutine(
                 new SysIdRoutine.Config(Volts.of(1).per(Second), Volts.of(3), null, null),
@@ -120,7 +112,7 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
                         (Voltage volts) -> setVoltage(volts.magnitude()),
                         log -> {
                             log.motor("primary")
-                                    //.voltage(sysidAppliedVoltageMeasure.mut_replace(motor.getAppliedOutput(), Volts))
+                                    .voltage(sysidAppliedVoltageMeasure.mut_replace(motor.getAppliedOutput(), Volts))
                                     .angularPosition(sysidPositionMeasure.mut_replace(getPosition(), Radians))
                                     .angularVelocity(sysidVelocityMeasure.mut_replace(getVelocity(), RadiansPerSecond));
                         },
@@ -137,9 +129,9 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
 
     @Override
     public void simulationPeriodic() {
-        //armSim.setInput(motor.getAppliedOutput());
+        armSim.setInput(motor.getAppliedOutput());
         armSim.update(0.020);
-        motor.setPosition(armSim.getAngleRads());
+        motor.getEncoder().setPosition(armSim.getAngleRads());
         simVelocity = armSim.getVelocityRadPerSec();
         ligament.setAngle(Units.radiansToDegrees(getPosition()) + 270);
     }
@@ -166,20 +158,20 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
     @Log
     @Override
     public double getPosition() {
-        return motorFeedback.getFeedbackRotorOffsetMeasure().abs(Radians);
+        return motor.getEncoder().getPosition();
     }
 
     @Log
     public double getVelocity() {
         if (RobotBase.isReal())
-            return motor.getVelocity().getValueAsDouble();
+            return motor.getEncoder().getVelocity();
         else
             return simVelocity;
     }
 
     @Override
     public void resetPosition() {
-        motor.setPosition(ArmPosition.TOP.value);
+        motor.getEncoder().setPosition(ArmPosition.TOP.value);
         initialized = true;
     }
 
@@ -189,9 +181,8 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
         voltage = Utils.applySoftStops(voltage, getPosition(), MIN_ANGLE_RADIANS, MAX_ANGLE_RADIANS);
 
         if (voltage < 0
-                && getPosition() < 0)
-                //&& positionTracker.getElevatorPosition() < Constants.Elevator.MOTION_LIMIT) 
-                {
+                && getPosition() < 0) {
+                //&& positionTracker.getElevatorPosition() < Constants.Elevator.MOTION_LIMIT) {
             voltage = 0;
         }
 
@@ -228,8 +219,8 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
     public Command moveToArbitraryPositionCommand(Supplier<Double> goalPositionSupplier) {
         return Commands.sequence(
                 runOnce(() -> pidController.reset(getPosition())),
-                runOnce(() -> pidController.setGoal(goalPositionSupplier.get())));
-                //moveToCurrentGoalCommand().until(this::atGoal)).withName("arm.moveToArbitraryPosition");
+                runOnce(() -> pidController.setGoal(goalPositionSupplier.get())),
+                moveToCurrentGoalCommand().until(this::atGoal)).withName("arm.moveToArbitraryPosition");
     }
 
     @Override
@@ -257,15 +248,9 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
 
     @Override
     public Command coastMotorsCommand() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'coastMotorsCommand'");
-    }
-
-    //@Override
-    /*public Command coastMotorsCommand() {
         return runOnce(motor::stopMotor)
                 .andThen(() -> {
-                    motorConfig.neutralMode(NeutralModeValue.CoastCoast);
+                    motorConfig.idleMode(IdleMode.kCoast);
                     motor.configure(motorConfig, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
                 })
                 .finallyDo((d) -> {
@@ -274,22 +259,22 @@ public class Arm extends SubsystemBase implements BaseSingleJointedArm<ArmPositi
                     pidController.reset(getPosition());
                 }).withInterruptBehavior(InterruptionBehavior.kCancelIncoming)
                 .withName("arm.coastMotorsCommand");
-    }*/
+    }
 
-    /*public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
+    public Command sysIdQuasistaticCommand(SysIdRoutine.Direction direction) {
         return sysIdRoutine.quasistatic(direction).withName("elevator.sysIdQuasistatic");
-    }*/
+    }
 
-    /*public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
+    public Command sysIdDynamicCommand(SysIdRoutine.Direction direction) {
         return sysIdRoutine.dynamic(direction).withName("elevator.sysIdDynamic");
-    }*/
+    }
 
-    /*public Command resetControllersCommand() {
+    public Command resetControllersCommand() {
         return Commands.runOnce(() -> pidController.reset(getPosition()))
                 .andThen(Commands.runOnce(() -> pidController.setGoal(getPosition())));
-    }*/
+    }
 
-    /*public boolean atGoal() {
+    public boolean atGoal() {
         return pidController.atGoal();
-    }*/
+    }
 }

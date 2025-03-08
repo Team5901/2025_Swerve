@@ -21,7 +21,8 @@ public class Constants {
             BOTTOM(-Math.PI / 2.0 + Units.degreesToRadians(5)),
             HORIZONTAL(0),
             L1(0),
-            L2(Units.degreesToRadians(55)), // reef angle
+            L2(Units.degreesToRadians(25)),
+            //L2(Units.degreesToRadians(55)), // reef angle
             L3(Units.degreesToRadians(55)),
             L4(1.033),
             TOP(Math.PI / 2.0);
@@ -37,9 +38,9 @@ public class Constants {
         public static final double SCORING_MOVEMENT = -0.8;
 
         public static final int MOTOR_ID = 12;
-        public static final int MOTOR_INVERTED = 1;
+        public static final boolean MOTOR_INVERTED = true;
 
-        public static final DCMotor MOTOR_GEARBOX_REPR = DCMotor.getFalcon500(1);
+        public static final DCMotor MOTOR_GEARBOX_REPR = DCMotor.getNEO(1);
         public static final double GEARING = 25.0; // TODO
         public static final double MASS_KG = Units.lbsToKilograms(10); // TODO
         public static final double COM_DISTANCE_METERS = Units.inchesToMeters(6); // TODO

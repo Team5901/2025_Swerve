@@ -9,7 +9,16 @@ import static edu.wpi.first.units.Units.*;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.configs.FeedbackConfigs;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
@@ -89,10 +98,28 @@ public class RobotContainer {
     };
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    TalonFX _talonArm = new TalonFX(12);
+    TalonFX _talonClimb = new TalonFX(3);
+    private final MotionMagicVoltage arm_mmReq = new MotionMagicVoltage(0);
     TalonFX _talonSpool = new TalonFX(10);
-    //public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
+    public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
     Intake intake = new Intake();
+    final VoltageOut m_request = new VoltageOut(0);
+
+    private TalonFXConfiguration cfg = new TalonFXConfiguration();
+
+    /* Configure gear ratio */
+    private FeedbackConfigs fdb = cfg.Feedback;
+
+    /* Configure Motion Magic */
+    //private final MotionMagicConfigs mm = cfg.MotionMagic;
+    private final VelocityVoltage m_velocityVoltage = new VelocityVoltage(0).withSlot(0);
+
+   //private final PositionVoltage m_positionVoltage = new PositionVoltage(0).withSlot(0);
+
+    Slot0Configs slot0 = cfg.Slot0;
+
+    StatusCode status = StatusCode.StatusCodeNotInitialized;
+
 
     public RobotContainer() {
         configureBindings();
@@ -110,12 +137,28 @@ public class RobotContainer {
             )
         );
 
-        moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(new DutyCycleOut(0.5 * controller_2.getLeftY()))));
-        moveArm.onFalse(new InstantCommand(() -> _talonArm.setControl(new DutyCycleOut(-0.01))));
-        moveElevator.whileTrue(new InstantCommand(() -> _talonSpool.setControl(new DutyCycleOut(0.5 * controller_2.getRightY()))));
+        //fdb.SensorToMechanismRatio = 25; // 25 rotor rotations per mechanism rotation
+        //mm.withMotionMagicCruiseVelocity(RotationsPerSecond.of(0.5)) // 5 (mechanism) rotations per second cruise
+          //  .withMotionMagicAcceleration(RotationsPerSecondPerSecond.of(10)) // Take approximately 0.5 seconds to reach max vel
+            // Take approximately 0.1 seconds to reach max accel 
+            //.withMotionMagicJerk(RotationsPerSecondPerSecond.per(Second).of(100));
+
+        slot0.kS = 0.4; // Add 0.25 V output to overcome static friction
+        slot0.kV = 0.1; // A velocity target of 1 rps results in 0.12 V output
+        slot0.kA = 0; // An acceleration of 1 rps/s requires 0.01 V output
+        slot0.kP =0; // A position error of 0.2 rotations results in 12 V output
+        slot0.kI = 0; // No output for integrated error
+        slot0.kD = 0; // A velocity error of 1 rps results in 0.5 V output
+        _talonClimb.getConfigurator().apply(cfg);
+
+        moveArm.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((controller_2.getLeftY()*-160)))));
+        //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
+        moveArm.onFalse(new InstantCommand(() -> _talonClimb.setControl(new DutyCycleOut(-0.01))));
+        //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
+        moveElevator.whileTrue(new InstantCommand(() -> _talonSpool.setControl(m_request.withOutput(12.0 * controller_2.getRightY()))));
         moveElevator.onFalse(new InstantCommand(() -> _talonSpool.setControl(new DutyCycleOut(-0.01))));
-        //Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
-        //Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
+        Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
+        Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
 
         IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
         IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
