@@ -46,7 +46,9 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.Arm;
+import frc.robot.subsystems.Arm2;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.Intake;
 
 public class RobotContainer {
@@ -70,14 +72,17 @@ public class RobotContainer {
   private final int rotationAxis = Joystick.AxisType.kZ.value;
 
   private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
-    private final Trigger moveClimb = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
+    private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
     private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
+    
 
     private final JoystickButton Level1A =
       new JoystickButton(controller_2, XboxController.Button.kA.value);
 
-    private final JoystickButton Level2X =
+    private final JoystickButton ClimbDownX =
       new JoystickButton(controller_2, XboxController.Button.kX.value);
+
+    private final JoystickButton ClimbUpY = new JoystickButton(controller_2, XboxController.Button.kY.value);
 
     private final JoystickButton IntakeRollersIn =
       new JoystickButton(controller_2, XboxController.Button.kLeftBumper.value);
@@ -105,7 +110,8 @@ public class RobotContainer {
     TalonFX _talonClimb = new TalonFX(3);
     private final MotionMagicVoltage arm_mmReq = new MotionMagicVoltage(0);
     TalonFX _talonSpool = new TalonFX(10);
-    public final Arm arm = new Arm(positionTracker, armLigament, carriagePoseSupplier);
+    public final Arm2 arm = new Arm2();
+    public final Elevator elevator = new Elevator();
     Intake intake = new Intake();
     final VoltageOut m_request = new VoltageOut(0);
 
@@ -155,12 +161,16 @@ public class RobotContainer {
         slot0.kD = 0; // A velocity error of 1 rps results in 0.5 V output
         _talonClimb.getConfigurator().apply(cfg);
 
-        moveClimb.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((controller_2.getLeftY()*-160)))));
+        ClimbUpY.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((75)))));
+        ClimbUpY.onFalse(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((0)))));
+        ClimbDownX.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((-75)))));
+        ClimbDownX.onFalse(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((0)))));
         //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
-        moveClimb.onFalse(new InstantCommand(() -> _talonClimb.setControl(new DutyCycleOut(-0.01))));
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
-        Level1A.whileTrue(new InstantCommand(() -> arm.setVoltage(3), arm));
-        Level1A.onFalse(new InstantCommand(() -> arm.setVoltage(0), arm));
+        moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(3 * controller_2.getRightY())));
+        moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
+        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * controller_2.getLeftY())));
+        moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
         //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
 
