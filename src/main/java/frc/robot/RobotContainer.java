@@ -8,7 +8,9 @@ import static edu.wpi.first.units.Units.*;
 
 import java.util.function.Supplier;
 
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
@@ -25,6 +27,8 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -66,8 +70,8 @@ public class RobotContainer {
   private final int rotationAxis = Joystick.AxisType.kZ.value;
 
   private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
-    private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
-    private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
+    private final Trigger moveClimb = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
+    private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
 
     private final JoystickButton Level1A =
       new JoystickButton(controller_2, XboxController.Button.kA.value);
@@ -151,14 +155,14 @@ public class RobotContainer {
         slot0.kD = 0; // A velocity error of 1 rps results in 0.5 V output
         _talonClimb.getConfigurator().apply(cfg);
 
-        moveArm.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((controller_2.getLeftY()*-160)))));
+        moveClimb.whileTrue(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((controller_2.getLeftY()*-160)))));
         //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
-        moveArm.onFalse(new InstantCommand(() -> _talonClimb.setControl(new DutyCycleOut(-0.01))));
+        moveClimb.onFalse(new InstantCommand(() -> _talonClimb.setControl(new DutyCycleOut(-0.01))));
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
-        moveElevator.whileTrue(new InstantCommand(() -> _talonSpool.setControl(m_request.withOutput(12.0 * controller_2.getRightY()))));
-        moveElevator.onFalse(new InstantCommand(() -> _talonSpool.setControl(new DutyCycleOut(-0.01))));
-        Level1A.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L1, arm));
-        Level2X.onTrue(RobotCommands.prepareCoralScoreCommand(ScoreLevel.L2, arm));
+        Level1A.whileTrue(new InstantCommand(() -> arm.setVoltage(3), arm));
+        Level1A.onFalse(new InstantCommand(() -> arm.setVoltage(0), arm));
+        //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
+        //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
 
         IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
         IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
