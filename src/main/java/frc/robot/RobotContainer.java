@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
@@ -117,6 +118,9 @@ public class RobotContainer {
     Intake intake = new Intake();
     final VoltageOut m_request = new VoltageOut(0);
 
+    /* Path follower */
+    private final SendableChooser<Command> autoChooser;
+
     private TalonFXConfiguration cfg = new TalonFXConfiguration();
 
     /* Configure gear ratio */
@@ -134,6 +138,9 @@ public class RobotContainer {
 
 
     public RobotContainer() {
+        autoChooser = AutoBuilder.buildAutoChooser("Tests");
+        SmartDashboard.putData("Auto Mode", autoChooser);
+
         configureBindings();
     }
 
@@ -169,7 +176,7 @@ public class RobotContainer {
         ClimbDownX.onFalse(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((0)))));
         //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
-        moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(3 * controller_2.getRightY())));
+        moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(12 * controller_2.getRightY())));
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
         moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * controller_2.getLeftY())));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
@@ -196,6 +203,7 @@ public class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
-        return Commands.print("No autonomous command configured");
-    }
+      /* Run the path selected from the auto chooser */
+      return autoChooser.getSelected();
+  }
 }
