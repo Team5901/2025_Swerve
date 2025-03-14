@@ -16,6 +16,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import static frc.robot.Constants.Arm;
 
+import frc.robot.PositionTracker;
+import frc.robot.Constants.Arm.ArmPosition;
+
 @LoggedObject
 public class Arm2 extends SubsystemBase implements BaseIntake {
     @Log
@@ -23,7 +26,7 @@ public class Arm2 extends SubsystemBase implements BaseIntake {
 
     private SparkMaxConfig motorConfig;
 
-    public Arm2() {
+    public Arm2(PositionTracker positionTracker) {
         motorConfig = new SparkMaxConfig();
         motorConfig
                 .inverted(Arm.MOTOR_INVERTED)
@@ -32,6 +35,12 @@ public class Arm2 extends SubsystemBase implements BaseIntake {
 
         motor = new SparkMax(Arm.MOTOR_ID, MotorType.kBrushless);
         motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+        // Position
+        motorConfig.encoder.setPositionConversionFactor(Arm.ENCODER_POSITION_CONVERSION_FACTOR);
+        motorConfig.encoder.setVelocityConversionFactor(Arm.ENCODER_VELOCITY_CONVERSION_FACTOR);
+        this.positionTracker = positionTracker;
+        positionTracker.setArmAngleSupplier(this::getPosition);
     }
 
     public void setArmVoltage(double voltage) {
@@ -53,4 +62,15 @@ public class Arm2 extends SubsystemBase implements BaseIntake {
                 () -> setArmVoltage(0))
                 .withName("intake.reverseRollers");
     }
+
+    public Command moveToPositionCommand(Supplier<Double> positionSupplier) {
+    return new InstantCommand(() -> {
+        double positionDegrees = positionSupplier.get();
+        double positionRadians = Math.toRadians(positionDegrees);
+        // Logic to move the arm to the specified position in radians
+        // This might involve setting the motor to a specific position using PID control
+        // For example:
+        motor.getEncoder().setPosition(positionRadians);
+    });
+}
 }

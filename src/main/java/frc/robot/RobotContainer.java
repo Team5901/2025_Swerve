@@ -169,8 +169,19 @@ public class RobotContainer {
         ClimbDownX.onFalse(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((0)))));
         //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
+        
+        // Arm Joystick
         moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(3 * controller_2.getRightY())));
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
+        // Arm toggle positions
+        private final JoystickButton toggleArmPositionButton = new JoystickButton(controller_2, XboxController.Button.kB.value);
+        private int currentPositionIndex = 0;
+        toggleArmPositionButton.onTrue(new InstantCommand(() -> {
+            currentPositionIndex = (currentPositionIndex + 1) % Constants.Arm.ARM_POSITIONS.length;
+            double targetPosition = Constants.Arm.ARM_POSITIONS[currentPositionIndex];
+            arm.moveToPositionCommand(() -> targetPosition).schedule();
+        }));
+
         moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * controller_2.getLeftY())));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));

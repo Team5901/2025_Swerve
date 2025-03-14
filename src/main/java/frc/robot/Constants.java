@@ -34,6 +34,9 @@ public class Constants {
             }
         }
 
+        // Arm target positions
+        public static final double[] ARM_POSITIONS = {0.0, 45.0, 90.0, 135.0, 180.0}; 
+
         public static final double MOTION_LIMIT = -0.7;
         public static final double SCORING_MOVEMENT = -0.8;
 
