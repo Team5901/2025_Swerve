@@ -29,6 +29,7 @@ public class Arm2 extends SubsystemBase implements BaseIntake {
                 .inverted(Arm.MOTOR_INVERTED)
                 .idleMode(IdleMode.kBrake)
                 .smartCurrentLimit(Arm.CURRENT_LIMIT);
+                //.encoder.countsPerRevolution(42);
 
         motor = new SparkMax(Arm.MOTOR_ID, MotorType.kBrushless);
         motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);

@@ -176,9 +176,9 @@ public class RobotContainer {
         ClimbDownX.onFalse(new InstantCommand(() -> _talonClimb.setControl(m_velocityVoltage.withVelocity((0)))));
         //moveArm.whileTrue(new InstantCommand(() -> _talonArm.setControl(m_request.withOutput(12.0 * controller_2.getLeftY()))));
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
-        moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(12 * controller_2.getRightY())));
+        moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(2.5 * Math.signum(controller_2.getRightY()))));
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
-        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * controller_2.getLeftY())));
+        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(2.5 * Math.signum(controller_2.getLeftY()))));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
         //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
