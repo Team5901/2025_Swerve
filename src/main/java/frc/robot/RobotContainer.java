@@ -75,6 +75,7 @@ public class RobotContainer {
   private final int rotationAxis = Joystick.AxisType.kZ.value;
 
   private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
+  private final JoystickButton creeperMode = new JoystickButton(joystick, 1);
     private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
     private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
     
@@ -183,9 +184,9 @@ public class RobotContainer {
         //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
         //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
 
-        IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
-        IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
-        IntakeRollersOut.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(3), intake));
+        //IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
+        //IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
+        //IntakeRollersOut.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(3), intake));
         //IntakeRollersOut.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
 
 
@@ -199,11 +200,26 @@ public class RobotContainer {
         // reset the field-centric heading on left bumper press
         zeroGyro.onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
+        creeperMode.whileTrue(new InstantCommand(() -> 
+          drivetrain.applyRequest(() ->
+                drive.withVelocityX(-joystick.getRawAxis(translationAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * (MaxSpeed/2)) // Drive forward with negative Y (forward)
+                    .withVelocityY(-joystick.getRawAxis(strafeAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * (MaxSpeed/2)) // Drive left with negative X (left)
+                    .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 1d : 0.25d) * (MaxAngularRate/2)) // Drive counterclockwise with negative X (left)
+            ), drivetrain));
+
         drivetrain.registerTelemetry(logger::telemeterize);
     }
 
     public Command getAutonomousCommand() {
       /* Run the path selected from the auto chooser */
       return autoChooser.getSelected();
+  }
+
+  public void slowSpeed() {
+    MaxSpeed = MaxSpeed/2;
+  }
+
+  public void regSpeed() {
+    MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
   }
 }
