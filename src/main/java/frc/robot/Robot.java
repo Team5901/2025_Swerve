@@ -104,6 +104,7 @@ public class Robot extends TimedRobot {
     }
 
     // Put debug information to the dashboard
+    SmartDashboard.putBoolean("Camera Connected", camera.isConnected());
     SmartDashboard.putNumber("Vision Result Count", (double) resultCount);
     SmartDashboard.putNumber("Vision Target Count", (double) targetCount);
     SmartDashboard.putBoolean("Vision Target Visible", targetVisible);
