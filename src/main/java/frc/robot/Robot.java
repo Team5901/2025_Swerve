@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import java.util.Date;
 import java.util.List;
 
 import org.photonvision.PhotonCamera;
@@ -25,6 +26,7 @@ public class Robot extends TimedRobot {
 
   public Robot() {
     m_robotContainer = new RobotContainer();
+    camera = new PhotonCamera("front_camera");
   }
 
   @Override
@@ -58,7 +60,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
-    camera = new PhotonCamera("front_camera");
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
@@ -106,12 +107,11 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Vision Target Range (m)", targetRange);
     SmartDashboard.putNumber("Vision Target Yaw", targetYaw);
     SmartDashboard.putNumber("Target ID", targetID);
+    SmartDashboard.putNumber("Time", new Date().getTime());
   }
 
   @Override
-  public void teleopExit() {
-    camera.close();
-  }
+  public void teleopExit() {}
 
   @Override
   public void testInit() {
