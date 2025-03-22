@@ -4,7 +4,15 @@
 
 package frc.robot;
 
+import java.util.List;
+
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
+import org.photonvision.targeting.PhotonPipelineResult;
+
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -12,6 +20,8 @@ public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
+
+  private PhotonCamera camera;
 
   public Robot() {
     m_robotContainer = new RobotContainer();
@@ -48,16 +58,60 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+    camera = new PhotonCamera("front_camera");
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
   }
 
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+    // Read in relevant data from the Camera
+    boolean targetVisible = false;
+    double targetYaw = 0.0;
+    double targetRange = 0.0;
+    int targetID = 0;
+    int resultCount = 0;
+    int targetCount = 0;
+    List<PhotonPipelineResult> results = camera.getAllUnreadResults();
+
+    if (!results.isEmpty()) {
+        // Camera processed a new frame since last
+        // Get the last one in the list.
+        var result = results.get(results.size() - 1);
+        if (result.hasTargets()) {
+            // At least one AprilTag was seen by the camera
+            for (var target : result.getTargets()) {
+                if (target.getFiducialId() > 0) {
+                    targetID = target.getFiducialId();
+                    // Found Tag, record its information
+                    targetYaw = target.getYaw();
+                    targetRange =
+                            PhotonUtils.calculateDistanceToTargetMeters(
+                                    1, // Measured with a tape measure, or in CAD.
+                                    1, // From 2024 game manual for ID
+                                    Units.degreesToRadians(-30.0), // Measured with a protractor, or in CAD.
+                                    Units.degreesToRadians(target.getPitch()));
+
+                    targetVisible = true;
+                }
+            }
+        }
+    }
+
+    // Put debug information to the dashboard
+    SmartDashboard.putNumber("Vision Result Count", resultCount);
+    SmartDashboard.putNumber("Vision Target Count", targetCount);
+    SmartDashboard.putBoolean("Vision Target Visible", targetVisible);
+    SmartDashboard.putNumber("Vision Target Range (m)", targetRange);
+    SmartDashboard.putNumber("Vision Target Yaw", targetYaw);
+    SmartDashboard.putNumber("Target ID", targetID);
+  }
 
   @Override
-  public void teleopExit() {}
+  public void teleopExit() {
+    camera.close();
+  }
 
   @Override
   public void testInit() {

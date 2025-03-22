@@ -10,13 +10,13 @@ import static edu.wpi.first.units.Units.*;
 
 import java.util.function.Supplier;
 
-
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -25,6 +25,7 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Pose3d;
@@ -62,23 +63,19 @@ public class RobotContainer {
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-    private final SwerveRequest.FieldCentric drive2 = new SwerveRequest.FieldCentric()
-            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
-      // Controller and joystick
-  private final Joystick joystick = new Joystick(0);
-  private final XboxController controller_2 = new XboxController(1);
-  private final int translationAxis = Joystick.AxisType.kY.value;
-  private final int strafeAxis = Joystick.AxisType.kX.value;
-  private final int rotationAxis = Joystick.AxisType.kZ.value;
+    // Controller and joystick
+    private final Joystick joystick = new Joystick(0);
+    private final XboxController controller_2 = new XboxController(1);
+    private final int translationAxis = Joystick.AxisType.kY.value;
+    private final int strafeAxis = Joystick.AxisType.kX.value;
+    private final int rotationAxis = Joystick.AxisType.kZ.value;
 
-  private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
-  private final JoystickButton creeperMode = new JoystickButton(joystick, 1);
+    private final JoystickButton zeroGyro = new JoystickButton(joystick, 11);
     private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
     private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
     
@@ -125,7 +122,7 @@ public class RobotContainer {
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
 
-    private TalonFXConfiguration cfg = new TalonFXConfiguration();
+    private TalonFXConfiguration cfg = new TalonFXConfiguration().withMotorOutput(new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Brake));
 
     /* Configure gear ratio */
     private FeedbackConfigs fdb = cfg.Feedback;
@@ -153,11 +150,11 @@ public class RobotContainer {
         // and Y is defined as to the left according to WPILib convention.
         drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
-            drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick.getRawAxis(translationAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * MaxSpeed) // Drive forward with negative Y (forward)
-                    .withVelocityY(-joystick.getRawAxis(strafeAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * MaxSpeed) // Drive left with negative X (left)
-                    .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 1d : 0.25d) * MaxAngularRate) // Drive counterclockwise with negative X (left)
-            )
+              drivetrain.applyRequest(() ->
+                  drive.withVelocityX(-joystick.getRawAxis(translationAxis) * (joystick.getRawButton(1) ? 0.24d : 0.71d) * MaxSpeed) // Drive forward with negative Y (forward)
+                      .withVelocityY(-joystick.getRawAxis(strafeAxis) * (joystick.getRawButton(1) ? 0.24d : 0.71d) * MaxSpeed) // Drive left with negative X (left)
+                      .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 0.08d : 0.25d) * MaxAngularRate) // Drive counterclockwise with negative X (left)
+              )
         );
 
         //fdb.SensorToMechanismRatio = 25; // 25 rotor rotations per mechanism rotation
@@ -182,7 +179,7 @@ public class RobotContainer {
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
         moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(2.5 * Math.signum(controller_2.getRightY()))));
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
-        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(2.75 * Math.signum(controller_2.getLeftY()))));
+        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * Math.signum(controller_2.getLeftY()))));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
         //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
@@ -203,12 +200,12 @@ public class RobotContainer {
         // reset the field-centric heading on left bumper press
         zeroGyro.onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
-        creeperMode.whileTrue( 
+       /* creeperMode.whileTrue( 
           drivetrain.applyRequest(() ->
                 drive2.withVelocityX(-joystick.getRawAxis(translationAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * (MaxSpeed/2)) // Drive forward with negative Y (forward)
                     .withVelocityY(-joystick.getRawAxis(strafeAxis) * (joystick.getRawButton(1) ? 1d : 0.71d) * (MaxSpeed/2)) // Drive left with negative X (left)
                     .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 1d : 0.25d) * (MaxAngularRate/2)) // Drive counterclockwise with negative X (left)
-            ));
+            ));*/
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
