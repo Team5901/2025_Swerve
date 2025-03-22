@@ -10,6 +10,7 @@ import java.util.List;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonUtils;
 import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.targeting.PhotonTrackedTarget;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -84,7 +85,7 @@ public class Robot extends TimedRobot {
         targetCount = result.getTargets().size();
         if (result.hasTargets()) {
             // At least one AprilTag was seen by the camera
-            for (var target : result.getTargets()) {
+            for (PhotonTrackedTarget target : result.getTargets()) {
                 if (target.getFiducialId() > 0) {
                     targetID = target.getFiducialId();
                     // Found Tag, record its information
@@ -103,8 +104,8 @@ public class Robot extends TimedRobot {
     }
 
     // Put debug information to the dashboard
-    SmartDashboard.putNumber("Vision Result Count", resultCount);
-    SmartDashboard.putNumber("Vision Target Count", targetCount);
+    SmartDashboard.putNumber("Vision Result Count", (double) resultCount);
+    SmartDashboard.putNumber("Vision Target Count", (double) targetCount);
     SmartDashboard.putBoolean("Vision Target Visible", targetVisible);
     SmartDashboard.putNumber("Vision Target Range (m)", targetRange);
     SmartDashboard.putNumber("Vision Target Yaw", targetYaw);
