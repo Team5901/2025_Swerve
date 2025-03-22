@@ -76,10 +76,12 @@ public class Robot extends TimedRobot {
     int targetCount = 0;
     List<PhotonPipelineResult> results = camera.getAllUnreadResults();
 
+    resultCount = results.size();
     if (!results.isEmpty()) {
         // Camera processed a new frame since last
         // Get the last one in the list.
         var result = results.get(results.size() - 1);
+        targetCount = result.getTargets().size();
         if (result.hasTargets()) {
             // At least one AprilTag was seen by the camera
             for (var target : result.getTargets()) {
