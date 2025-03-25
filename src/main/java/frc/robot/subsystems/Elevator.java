@@ -20,22 +20,53 @@ import static frc.robot.Constants.Elevator.*;
 public class Elevator extends SubsystemBase implements BaseIntake {
     @Log
     private final SparkMax motor;
-
+    private SparkClosedLoopController pidController;
+    private double setPoint;
+    private double encoderTolerance;
+    private String name;
     private SparkMaxConfig motorConfig;
 
-    public Elevator() {
+    public Elevator(String name) {
+        this.encoderTolerance = TOLERANCE;
+        this.name = name;
+        motor = new SparkMax(MOTOR_ID, MotorType.kBrushless);
+        pidController = motor.getClosedLoopController();
         motorConfig = new SparkMaxConfig();
         motorConfig
                 .inverted(MOTOR_INVERTED)
                 .idleMode(IdleMode.kBrake)
                 .smartCurrentLimit(CURRENT_LIMIT);
-
-        motor = new SparkMax(MOTOR_ID, MotorType.kBrushless);
+                .closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(kP, kI, kD);
         motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     }
 
+    /**
+     * Sets the motor to a target position.
+     * @param position The desired position in encoder units
+     */
+    public void setPosition(double position) {
+        setPoint = position;
+        pidController.setReference(position, ControlType.kPosition);
+    }
+
+    /**
+     * Checks if the motor is within the set position tolerance.
+     * @return True if within tolerance, false otherwise
+     */
+    public boolean atPosition() {
+        double currentPos = motor.getEncoder().getPosition();
+        return (currentPos >= setPoint - encoderTolerance) && (currentPos <= setPoint + encoderTolerance);
+    }
+    
     public void setElevatorVoltage(double voltage) {
         motor.setVoltage(voltage);
+    }
+
+    @Override
+    public void periodic() {
+        SmartDashboard.putNumber(name + "_SetPoint", setPoint);
+        SmartDashboard.putNumber(name + "_Pose", motor.getEncoder().getPosition());
+        SmartDashboard.putBoolean(name + "_AtPose", atPosition());
     }
 
     @Override
