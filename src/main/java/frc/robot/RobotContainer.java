@@ -81,8 +81,11 @@ public class RobotContainer {
     private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
     
 
-    private final JoystickButton Level1A =
+    private final JoystickButton Level4A =
       new JoystickButton(controller_2, XboxController.Button.kA.value);
+
+    private final JoystickButton HomeB =
+      new JoystickButton(controller_2, XboxController.Button.kB.value);
 
     private final JoystickButton ClimbDownX =
       new JoystickButton(controller_2, XboxController.Button.kX.value);
@@ -116,9 +119,13 @@ public class RobotContainer {
     private final MotionMagicVoltage arm_mmReq = new MotionMagicVoltage(0);
     TalonFX _talonSpool = new TalonFX(10);
     public final Arm2 arm = new Arm2();
-    public final Elevator elevator = new Elevator();
+    public final Elevator elevator = new Elevator("elevator");
     Intake intake = new Intake();
     final VoltageOut m_request = new VoltageOut(0);
+
+    /* Commands */
+    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, 10);
+    private final SetPositionElevatorCommand moveElevatorToHome = new SetPositionElevatorCommand(elevator, 0);
 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
@@ -182,8 +189,8 @@ public class RobotContainer {
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
         moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * Math.signum(controller_2.getLeftY()))));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
-        //Level1A.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L1));
-        //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
+        Level4A.onTrue(moveElevatorToL4);
+        HomeB.onTrue(moveElevatorToHome);
 
         //IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
         //IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
