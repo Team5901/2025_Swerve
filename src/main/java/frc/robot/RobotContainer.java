@@ -55,6 +55,7 @@ import frc.robot.subsystems.Arm2;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.SetPositionElevatorCommand;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -124,7 +125,7 @@ public class RobotContainer {
     final VoltageOut m_request = new VoltageOut(0);
 
     /* Commands */
-    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, 10);
+    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, -38);
     private final SetPositionElevatorCommand moveElevatorToHome = new SetPositionElevatorCommand(elevator, 0);
 
     /* Path follower */
@@ -161,7 +162,7 @@ public class RobotContainer {
               drivetrain.applyRequest(() ->
                   drive.withVelocityX(-joystick.getRawAxis(translationAxis) * (joystick.getRawButton(1) ? 0.24d : 0.71d) * MaxSpeed) // Drive forward with negative Y (forward)
                       .withVelocityY(-joystick.getRawAxis(strafeAxis) * (joystick.getRawButton(1) ? 0.24d : 0.71d) * MaxSpeed) // Drive left with negative X (left)
-                      .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 0.08d : 0.25d) * MaxAngularRate) // Drive counterclockwise with negative X (left)
+                      .withRotationalRate(-joystick.getRawAxis(rotationAxis) * (joystick.getRawButton(1) ? 0.12d : 0.25d) * MaxAngularRate) // Drive counterclockwise with negative X (left)
               )
         );
 
@@ -187,7 +188,7 @@ public class RobotContainer {
         //Level1A.onTrue(new InstantCommand(() -> _talonArm.setControl(m_positionVoltage.withPosition(1))));
         moveArm.whileTrue(new InstantCommand(() -> arm.setArmVoltage(2.5 * Math.signum(controller_2.getRightY()))));
         moveArm.onFalse(new InstantCommand(() -> arm.setArmVoltage(0)));
-        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(3 * Math.signum(controller_2.getLeftY()))));
+        moveElevator.whileTrue(new InstantCommand(() -> elevator.setElevatorVoltage(4 * Math.signum(controller_2.getLeftY()))));
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         Level4A.onTrue(moveElevatorToL4);
         HomeB.onTrue(moveElevatorToHome);
