@@ -44,11 +44,17 @@ public class Robot extends TimedRobot {
 
   Optional<EstimatedRobotPose> robotPose;
 
+  public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Pose3d prevEstimatedRobotPose, PhotonPipelineResult result) {
+    photonPoseEstimator.setReferencePose(prevEstimatedRobotPose);
+    return photonPoseEstimator.update(result);
+  }
+
   public Robot() {
     m_robotContainer = new RobotContainer();
     camera = new PhotonCamera("front_camera");
     Transform3d robotToCam = new Transform3d(new Translation3d(0.5, 0.0, 0.5), new Rotation3d(0,0,0)); //Cam mounted facing forward, half a meter forward of center, half a meter up from center.
-    photonPoseEstimator = new PhotonPoseEstimator(aprilTagFieldLayout, PoseStrategy.CLOSEST_TO_REFERENCE_POSE, robotToCam);
+    // photonPoseEstimator = new PhotonPoseEstimator(aprilTagFieldLayout, PoseStrategy.CLOSEST_TO_REFERENCE_POSE, robotToCam);
+    photonPoseEstimator = new PhotonPoseEstimator(aprilTagFieldLayout, PoseStrategy.AVERAGE_BEST_TARGETS, robotToCam);
     
   }
 
@@ -122,6 +128,7 @@ public class Robot extends TimedRobot {
 
             // Pose Estimation not working yet
             robotPose = photonPoseEstimator.update(result);
+            // robotPose = getEstimatedGlobalPose(robotPose.isPresent() ? robotPose.get().estimatedPose : new Pose3d(), result);
             if (robotPose.isPresent()) {
                 poseTarget = robotPose.get().targetsUsed.get(0).fiducialId;
                 poseX = robotPose.get().estimatedPose.getTranslation().getX();
@@ -170,7 +177,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Target X", targetX);
     SmartDashboard.putNumber("Target Y", targetY);
 
-    // Pose Estimation not working yet
+    // Pose Estimation
     SmartDashboard.putNumber("Target used for pose", poseTarget);
     SmartDashboard.putNumber("Pose X", poseX);
     SmartDashboard.putNumber("Pose Y", poseY);
