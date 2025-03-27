@@ -192,7 +192,6 @@ public class RobotContainer {
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         Level4A.onTrue(moveElevatorToL4);
         HomeB.onTrue(moveElevatorToHome);
-        //Level2X.onTrue(arm.moveToPositionCommand(() -> Constants.Arm.ArmPosition.L2));
 
         //IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
         //IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
