@@ -107,9 +107,9 @@ public class Constants {
 
         public static final int CURRENT_LIMIT = 60;
 
-        public static final double kP = 50; // TODO
+        public static final double kP = 0.14; // TODO
         public static final double kI = 0; // TODO
-        public static final double kD = 5; // TODO
+        public static final double kD = 0; // TODO
         public static final double kS = 0.095388; // TODO
         public static final double kG = 0.54402; // TODO
         public static final double kV = 7.43; // TODO

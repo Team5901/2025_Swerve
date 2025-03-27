@@ -125,7 +125,7 @@ public class RobotContainer {
     final VoltageOut m_request = new VoltageOut(0);
 
     /* Commands */
-    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, -7);
+    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, -38);
     private final SetPositionElevatorCommand moveElevatorToHome = new SetPositionElevatorCommand(elevator, 0);
 
     /* Path follower */
