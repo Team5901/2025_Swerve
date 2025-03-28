@@ -88,15 +88,21 @@ public class RobotContainer {
     private final JoystickButton HomeB =
       new JoystickButton(controller_2, XboxController.Button.kB.value);
 
+    private final JoystickButton RestRight =
+      new JoystickButton(controller_2, XboxController.Button.kRightBumper.value);
+
+    private final JoystickButton Level3Left =
+      new JoystickButton(controller_2, XboxController.Button.kLeftBumper.value);
+
     private final JoystickButton ClimbDownX =
       new JoystickButton(controller_2, XboxController.Button.kX.value);
 
     private final JoystickButton ClimbUpY = new JoystickButton(controller_2, XboxController.Button.kY.value);
 
-    private final JoystickButton IntakeRollersIn =
-      new JoystickButton(controller_2, XboxController.Button.kLeftBumper.value);
-    private final JoystickButton IntakeRollersOut =
-      new JoystickButton(controller_2, XboxController.Button.kRightBumper.value);
+    //private final JoystickButton IntakeRollersIn =
+     // new JoystickButton(controller_2, XboxController.Button.kLeftBumper.value);
+    //private final JoystickButton IntakeRollersOut =
+      //new JoystickButton(controller_2, XboxController.Button.kRightBumper.value);
 
     PositionTracker positionTracker = new PositionTracker();
     private Mechanism2d mechanisms = new Mechanism2d(5, 3);
@@ -125,9 +131,14 @@ public class RobotContainer {
     final VoltageOut m_request = new VoltageOut(0);
 
     /* Commands */
-    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, -38);
-    private final SetPositionElevatorCommand moveElevatorToHome = new SetPositionElevatorCommand(elevator, 0);
+    private final SetPositionElevatorCommand moveElevatorToL3 = new SetPositionElevatorCommand(elevator, -11);
 
+    private final SetPositionElevatorCommand moveElevatorToRest = new SetPositionElevatorCommand(elevator, -8);
+
+    private final SetPositionElevatorCommand moveElevatorToL4 = new SetPositionElevatorCommand(elevator, -38);
+
+    private final SetPositionElevatorCommand moveElevatorToHome = new SetPositionElevatorCommand(elevator, 0);
+ 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
 
@@ -192,6 +203,9 @@ public class RobotContainer {
         moveElevator.onFalse(new InstantCommand(() -> elevator.setElevatorVoltage(0)));
         Level4A.onTrue(moveElevatorToL4);
         HomeB.onTrue(moveElevatorToHome);
+        Level3Left.onTrue(moveElevatorToL3);
+        RestRight.onTrue(moveElevatorToRest);
+        
 
         //IntakeRollersIn.whileTrue(new InstantCommand(() -> intake.setRollerVoltage(-3), intake));
         //IntakeRollersIn.onFalse(new InstantCommand(() -> intake.setRollerVoltage(0), intake));
