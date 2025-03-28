@@ -30,6 +30,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -79,6 +80,8 @@ public class RobotContainer {
     private final Trigger moveElevator = new Trigger(() -> Math.abs(controller_2.getLeftY()) > 0.1);
     private final Trigger moveArm = new Trigger(() -> Math.abs(controller_2.getRightY()) > 0.1);
     
+    // Auto Target
+    public final JoystickButton alignTargetButton1 = new JoystickButton(joystick, 5);
 
     private final JoystickButton Level1A =
       new JoystickButton(controller_2, XboxController.Button.kA.value);
@@ -143,6 +146,15 @@ public class RobotContainer {
         SmartDashboard.putData("Auto Mode", autoChooser);
 
         configureBindings();
+    }
+
+    public void moveTo(Translation2d translation) {
+      // TODO
+      // drivetrain.setDefaultCommand(
+      //       // Drivetrain will execute this command periodically
+      //         drivetrain.applyRequest(() ->
+      //         )
+      //   );
     }
 
     private void configureBindings() {

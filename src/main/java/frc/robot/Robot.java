@@ -4,8 +4,11 @@
 
 package frc.robot;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.photonvision.EstimatedRobotPose;
@@ -30,6 +33,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
@@ -43,6 +47,8 @@ public class Robot extends TimedRobot {
   AprilTagFieldLayout aprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
   Optional<EstimatedRobotPose> robotPose;
+
+  private Map<Integer, PhotonTrackedTarget> targets = new HashMap<>();
 
   public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Pose3d prevEstimatedRobotPose, PhotonPipelineResult result) {
     photonPoseEstimator.setReferencePose(prevEstimatedRobotPose);
@@ -87,29 +93,63 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousExit() {}
 
+  public void alignOnTarget(int targetId) {
+    if (targets.containsKey(targetId)) {
+      PhotonTrackedTarget target = targets.get(targetId);
+
+      // Calculate distance to target
+      Optional<Pose3d> targetPose = aprilTagFieldLayout.getTagPose(targetId);
+      double targetHeight = targetPose.get().getTranslation().getZ();
+      double targetRange = PhotonUtils.calculateDistanceToTargetMeters(
+          1, // Measured with a tape measure, or in CAD.
+          targetHeight, // From 2024 game manual for ID
+          Units.degreesToRadians(0), // Measured with a protractor, or in CAD.
+          Units.degreesToRadians(target.getPitch()));
+
+      // Calculate translation from robot to target
+      Translation2d targetTranslation = PhotonUtils.estimateCameraToTargetTranslation(targetRange, Rotation2d.fromDegrees(-target.getYaw()));
+      
+      // Debug target translation
+      SmartDashboard.putNumber("X to target", targetTranslation.getX());
+      SmartDashboard.putNumber("Y to target", targetTranslation.getY());
+      SmartDashboard.putNumber("Rotation to target", targetTranslation.getAngle().getDegrees());
+      
+      // Move to target
+      // m_robotContainer.drivetrain.
+      // m_robotContainer.moveTo(targetTranslation);
+    }
+  }
+
   @Override
   public void teleopInit() {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
+    // Auto Align on target
+    m_robotContainer.alignTargetButton1.onTrue(new InstantCommand(() -> alignOnTarget(1)));
   }
 
   @Override
   public void teleopPeriodic() {
-    // Read in relevant data from the Camera
+
+    // Camera target tracking
+    int resultCount = 0;
+    int targetCount = 0;
     boolean targetVisible = false;
     double targetYaw = 0.0;
     double targetPitch = 0.0;
     double targetRange = 0.0;
     int targetID = 0;
     Optional<Pose3d> targetPose;
+
+    // Target Pose
     double targetHeight = 0.0;
     double targetX = 0.0;
     double targetY = 0.0;
-    int resultCount = 0;
-    int targetCount = 0;
     Translation2d targetTranslation;
 
+    // Robot Pose
     double poseTarget = 0;
     double poseX = 0;
     double poseY = 0;
@@ -117,17 +157,20 @@ public class Robot extends TimedRobot {
 
     List<PhotonPipelineResult> results = camera.getAllUnreadResults();
 
+    // Clear list of targets
+    targets.clear();
     resultCount = results.size();
     if (!results.isEmpty()) {
         // Camera processed a new frame since last
         // Get the last one in the list.
         var result = results.get(results.size() - 1);
         targetCount = result.getTargets().size();
-        if (result.hasTargets()) {
-            // At least one AprilTag was seen by the camera
 
+        // At least one AprilTag was seen by the camera
+        if (result.hasTargets()) {
             // Pose Estimation not working yet
             robotPose = photonPoseEstimator.update(result);
+            SmartDashboard.putString("robot pose", robotPose.toString());
             // robotPose = getEstimatedGlobalPose(robotPose.isPresent() ? robotPose.get().estimatedPose : new Pose3d(), result);
             if (robotPose.isPresent()) {
                 poseTarget = robotPose.get().targetsUsed.get(0).fiducialId;
@@ -135,31 +178,43 @@ public class Robot extends TimedRobot {
                 poseY = robotPose.get().estimatedPose.getTranslation().getY();
                 poseHeading = Units.radiansToDegrees(robotPose.get().estimatedPose.getRotation().getAngle());
             }
+
+            // Check for targets
             for (PhotonTrackedTarget target : result.getTargets()) {
                 if (target.getFiducialId() > 0) {
                     targetID = target.getFiducialId();
                     targetPose = aprilTagFieldLayout.getTagPose(targetID);
-                    if(targetPose.isPresent()) {
+
+                    // Check if target is on the field
+                    if (targetPose.isPresent()) {
+                        targetVisible = true;
+
+                        // Save target to targets map
+                        targets.put(targetID, target);
+
+                        //Debug target pose
                         targetHeight = targetPose.get().getTranslation().getZ();
                         targetX = targetPose.get().getTranslation().getX();
                         targetY = targetPose.get().getTranslation().getY();
                     }
+
                     // Found Tag, record its information
                     targetYaw = Units.degreesToRadians(target.getYaw());
                     targetPitch = Units.degreesToRadians(target.getPitch());
+
                     // IMPORTANT: Won't work if target and camera are exact same height
-                    targetRange =
-                            PhotonUtils.calculateDistanceToTargetMeters(
-                                    1, // Measured with a tape measure, or in CAD.
-                                    targetHeight, // From 2024 game manual for ID
-                                    Units.degreesToRadians(0), // Measured with a protractor, or in CAD.
-                                    Units.degreesToRadians(target.getPitch()));
-                    targetVisible = true;
-                    targetTranslation = PhotonUtils.estimateCameraToTargetTranslation(targetRange, Rotation2d.fromDegrees(-target.getYaw()));
+                    targetRange = PhotonUtils.calculateDistanceToTargetMeters(
+                        1, // Measured with a tape measure, or in CAD.
+                        targetHeight, // From 2024 game manual for ID
+                        Units.degreesToRadians(0), // Measured with a protractor, or in CAD.
+                        Units.degreesToRadians(target.getPitch()));
                 }
             }
         }
     }
+
+    // Test align on target
+    alignOnTarget(1);
 
     // Put debug information to the dashboard
     SmartDashboard.putNumber("Time", new Date().getTime());
@@ -173,9 +228,9 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Target Pitch", targetPitch);
 
     // Target Position
-    SmartDashboard.putNumber("Target Height", targetHeight);
-    SmartDashboard.putNumber("Target X", targetX);
-    SmartDashboard.putNumber("Target Y", targetY);
+    // SmartDashboard.putNumber("Target Height", targetHeight);
+    // SmartDashboard.putNumber("Target X", targetX);
+    // SmartDashboard.putNumber("Target Y", targetY);
 
     // Pose Estimation
     SmartDashboard.putNumber("Target used for pose", poseTarget);
